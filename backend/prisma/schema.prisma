@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum BudgetStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+enum CatalogItemType {
+  MATERIAL
+  SERVICO
+}
+
+model Material {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  price       Decimal
+  marginPercent Decimal    @default(0)
+  type        CatalogItemType @default(MATERIAL)
+  segment     String       @default("GERAL")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  budgetItems BudgetItem[]
+}
+
+model Budget {
+  id        Int          @id @default(autoincrement())
+  customer  String?
+  status    BudgetStatus @default(DRAFT)
+  total     Decimal
+  customLaborDescription String?
+  customLaborAmount Decimal @default(0)
+  customLaborMarginPercent Decimal @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  items     BudgetItem[]
+  customServices BudgetCustomService[]
+}
+
+model BudgetItem {
+  id                Int      @id @default(autoincrement())
+  budgetId          Int
+  materialId        Int
+  quantity          Decimal
+  marginPercentSnapshot Decimal @default(0)
+  unitPriceSnapshot Decimal
+  subtotal          Decimal
+  createdAt         DateTime @default(now())
+
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@index([budgetId])
+  @@index([materialId])
+}
+
+model BudgetCustomService {
+  id                    Int      @id @default(autoincrement())
+  budgetId              Int
+  description           String
+  quantity              Decimal
+  baseUnitPrice         Decimal
+  marginPercentSnapshot Decimal  @default(0)
+  unitPriceSnapshot     Decimal
+  subtotal              Decimal
+  createdAt             DateTime @default(now())
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+}
